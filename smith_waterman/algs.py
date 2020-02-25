@@ -266,34 +266,112 @@ def sw_norm(x, y, gap, extention, d):
     """
     minimum = min(len(x), len(y))
     Dict = d
-    F = make_matrix(len(x) + 1, len(y) + 1) # Keeps track of alignment scores
-    X = make_matrix(len(x) + 1, len(y) + 1) # Keeps sequence X gaps and extentions
-    Y = make_matrix(len(x) + 1, len(y) + 1) # Keeps sequence Y gaps and extentions
+    fromF, fromX, fromY = 1, 2, 3
+    F = make_matrix(len(s1) + 1, len(s2) + 1) # Keeps track of alignment scores
+    X = make_matrix(len(s1) + 1, len(s2) + 1) # Keeps sequence X gaps and extentions
+    Y = make_matrix(len(s1) + 1, len(s2) + 1) # Keeps sequence Y gaps and extentions
+    T = make_matrix(len(s1) + 1, len(s2) + 1) # Keeps sequence Y gaps and extentions
+    
+    # Initialize the out part of the matrix
+    for i in range(0, len(s1)+1):
+        F[i][0] = (0, fromX)
+        X[i][0] = (0, fromX)
+        Y[i][0] = (0, fromX)
+    
+    for i in range(0, len(s2)+1):
+        F[0][i] = (0, fromY)
+        X[0][i] = (0, fromY)
+        Y[0][i] = (0, fromY)
+    
+    # Keep track of highest score and it's location
     best = 0
     optloc = (0,0)
-    for i in range(1, len(x)+1):
-        for j in range(1, len(y)+1):
-            X[i][j]= max(0,
-                        F[i-1][j] - gap, # new gap
-                        X[i-1][j] - extention # contiue to extend
+    
+    # Go throught the matrix and update with optimal score at each postion
+    for i in range(1, len(s1)+1):
+        for j in range(1, len(s2)+1):
+            X[i][j]= max((0,fromX),
+                        ((F[i-1][j])[0]-gap, fromF), # new gap
+                        ((X[i-1][j])[0]-extention, fromX) # contiue to extend
+                        ) # Makes a gap on the 'Y' strand
+            Y[i][j]= max((0,fromY),
+                        ((F[i][j-1])[0] - gap,fromF), # New Gap
+                        ((Y[i][j-1])[0] - extention,fromY) # Continue to extend
+                        ) # Makes a gap on the 'X' strand
+            F[i][j]= max((0,fromF),
+                        ((F[i-1][j-1])[0] + Dict[(s1[i-1],s2[j-1])],fromF),
+                        ((X[i-1][j-1])[0] + Dict[(s1[i-1],s2[j-1])],fromX),
+                        ((Y[i-1][j-1])[0] + Dict[(s1[i-1],s2[j-1])],fromY), 
                         )
-            Y[i][j]= max(0,
-                        F[i][j-1] - gap, # New Gap
-                        Y[i][j-1] - extention # Continue to extend
-                        )
-            F[i][j]= max(0,
-                        F[i-1][j-1] + Dict[(x[i-1],y[j-1])],
-                        X[i-1][j-1] + Dict[(x[i-1],y[j-1])],
-                        Y[i-1][j-1] + Dict[(x[i-1],y[j-1])], 
-                        )
-            if F[i][j] >= best:
-                best = F[i][j]
-                optloc = (i-1,j-1)
-            # print(X)
-            # print(Y)
-            # print(F)
+            if (F[i][j])[0] >= best:
+                best = (F[i][j])[0]
+                optloc = (i,j)
+    
+    # Perform Traceback
+    i = optloc[0] # the i postion of where the matrix should begin it's traceback
+    j = optloc[1] # the j postion of where the matrix should begin it's traceback
+    # Best aligned sequences
+    align1 = np.array([])
+    align2 = np.array([])
+    
+    current = F # The current matrix that we are investigating
+    
+    while current[i][j][0]!=0: # While the score is not equal to zero
+        if current == F: # if in main matrix
+            if current[i][j][1] == fromF: # if current cell is fromF
+                a1 = s1[i-1] # aa to be added to first seq 
+                a2 = s2[j-1] # aa to be added to second seq 
+                i -= 1
+                j -= 1
+                current = F
+            elif current[i][j][1] == fromX: # if current cell is fromX
+                a1 = s1[i-1] # aa to be added to first seq 
+                a2 = s2[j-1] # aa to be added to second seq 
+                i -= 1
+                j -= 1
+                current = X
+            elif current[i][j][1] == fromY:
+                a1 = s1[i-1] # aa to be added to first seq 
+                a2 = s2[j-1] # aa to be added to second seq 
+                i -= 1
+                j -= 1
+                current = Y
+        
+        elif current == X:
+            if current[i][j][1] == fromF:
+                a1 = s1[i-1] # aa to be added to first seq 
+                a2 = '-' # Perfrom a skip
+                i -= 1
+                current = F
+            elif current[i][j][1] == fromX:
+                a1 = s1[i-1]  # aa to be added to first seq 
+                a2 = '-' 
+                i -= 1
+                current = X              
+         
+        elif current == Y: 
+            if current[i][j][1] == fromF:
+                a1 = '-'
+                a2 = s2[j-1] # aa to be added to second seq 
+                j -= 1
+                current=F
+            elif current[i][j][1] == fromY:
+                a1 = '-'
+                a2 = s2[j-1] # aa to be added to second seq 
+                j -= 1
+                current=Y
+        align1 = np.append(a1, align1)
+        align2 = np.append(a2, align2)
+   
+    
+    # print(X)
+    # print(Y)
+    # print(F)
+    
+    # print(align1)
+    # print(align2)
     # return the opt score and the best location
-    return best/minimum, optloc
+    return best/minimum, optloc, align1, align2
 
 
 
@@ -469,6 +547,7 @@ def score_neg(df):
         # print(final_s)
     return final_s
 
+
 def ga_init(text):
     n = 200 # This is the starting population
     pop = np.array([])
@@ -579,4 +658,4 @@ def test(text, align1, align2, g, e, known):
             print(score)
             best_s = score
             best_m = x
-    return orig_m, best_m
+    return best_m
