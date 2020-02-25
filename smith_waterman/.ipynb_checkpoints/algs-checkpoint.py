@@ -421,6 +421,12 @@ def test_known(gap, extend, d):
     return df
 
 def test_known_norm(gap, extend, text):
+    """
+     Generates a data frame that has each sequence,
+     whether it is a pos or neg control
+     the score it recieved normalized by length
+     The local alignment
+    """
     # Read in negative and pos score
     pos = readPosPairs()
     neg = readNegPairs()
@@ -455,6 +461,7 @@ def test_known_norm(gap, extend, text):
 def score_70percent(test):
     """
     returns the score that contains 70% of all True_positives
+    Test is a dataframe of scores
     """
     known_pos = test[test.known==1] # based on the scores in test calc the score required to get 0.7 true pos called pos
     sorted_known_pos = known_pos.sort_values(by='score') # sort based on score
@@ -464,6 +471,8 @@ def score_70percent(test):
     return score
 
 def false_pos(test, score):
+    # Test is a DF of scores
+    # score is the score of postion
     known_neg = test[test.known==0]
     total=len(known_neg.score)
     # print(known_neg)
@@ -471,6 +480,7 @@ def false_pos(test, score):
     return f/total
 
 def score(test, m):
+    # Obatain the false positive score for all TP percentage
     known_pos = test[test.known==1] # based on the scores in test calc the score required to get 0.7 true pos called pos
     sorted_known_pos = known_pos.sort_values(by='score') # sort based on score
     
@@ -503,6 +513,8 @@ def readPosPairs():
 	return data
 
 def get_scores(align1, align2, D, g, e, known):
+    # Gets the scores of a fixed alignment, align1 and align2, given matrix D, and gap, g, and extention, e, penalties.
+    # Known marks whether it is a known pos or known negative
     s = np.array([])
     for x in range(len(align1)):
         seq1=align1[x]
@@ -527,6 +539,7 @@ def get_scores(align1, align2, D, g, e, known):
 
 
 def score_neg(df):
+    # Returns the value TP for FP scores of 0,0.1,0.2,and 0.3
     known_pos = df[df.known==1] 
     total_pos=len(known_pos.score)
     
@@ -549,6 +562,7 @@ def score_neg(df):
 
 
 def ga_init(text):
+    # Makes the initial Matrix
     n = 200 # This is the starting population
     pop = np.array([])
     for x in range(n):
